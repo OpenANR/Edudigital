@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('classrooms', function (Blueprint $table) {
             $table->id();
             $table->string('tingkat');
+            $table->string('nama_kelas');
             $table->foreignId('department_id')->constrained('departments');
             $table->foreignId('user_id')->constrained('users');
             $table->timestamps();

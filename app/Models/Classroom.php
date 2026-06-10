@@ -8,7 +8,7 @@ class Classroom extends Model
 {
     protected $table = 'classrooms';
     protected $fillable = [
-        'tingkat', 'department_id', 'user_id'
+        'tingkat', 'nama_kelas', 'department_id', 'user_id'
     ];
 
     public function departments() 

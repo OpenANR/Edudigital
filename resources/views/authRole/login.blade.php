@@ -17,9 +17,17 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 min-h-screen w-full bg-slate-900">
+    <div class="grid grid-cols-1 lg:grid-cols-12 min-h-screen w-full relative overflow-hidden bg-slate-900">
+        <!-- Background Image with Cover (Shared across entire screen) -->
+        <div class="absolute inset-0 bg-cover bg-center transition-transform duration-10000 ease-out transform scale-105 hover:scale-100"
+             style="background-image: url('{{ asset('image/backgroundLogin.jpg') }}');">
+        </div>
+        
+        <!-- Sleek Overlay (Shared across entire screen) -->
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/90 via-blue-900/80 to-slate-950/90"></div>
+
         <!-- LEFT COLUMN: Form Login -->
-        <div class="lg:col-span-5 flex flex-col justify-between p-8 sm:p-12 md:p-16 bg-white shadow-2xl z-10 lg:rounded-r-[2.5rem]">
+        <div class="lg:col-span-6 flex flex-col justify-between p-8 sm:p-12 md:p-16 bg-white shadow-2xl z-10 lg:rounded-r-[2.5rem] relative">
             <!-- Top Header (Logo for Mobile) -->
             <div class="w-full">
                 <!-- Mobile Logo -->
@@ -149,16 +157,8 @@
             </div>
         </div>
 
-        <!-- RIGHT COLUMN: Image & Logo Showcase (Desktop only) -->
-        <div class="hidden lg:col-span-7 lg:flex relative overflow-hidden bg-slate-900 justify-center items-center">
-            <!-- Background Image with Cover -->
-            <div class="absolute inset-0 bg-cover bg-center transition-transform duration-10000 ease-out transform scale-105 hover:scale-100"
-                 style="background-image: url('{{ asset('image/backgroundLogin.jpg') }}');">
-            </div>
-            
-            <!-- Sleek Overlay -->
-            <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/90 via-blue-900/80 to-slate-950/90"></div>
-            
+        <!-- RIGHT COLUMN: Content Showcase (Desktop only) -->
+        <div class="hidden lg:col-span-6 lg:flex relative justify-center items-center z-10">
             <!-- Glassmorphism Container for Branding -->
             <div class="relative z-10 max-w-md p-10 mx-6 rounded-3xl border border-white/10 backdrop-blur-md bg-white/5 shadow-2xl text-center flex flex-col items-center">
                 <!-- Logo Frame -->

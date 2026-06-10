@@ -21,7 +21,6 @@ class RoleMiddleware
         }
 
         if (Auth::user()->role !== $role ){
-            
             return match (Auth::user()->role) {
                 'admin' => redirect()->route('admin.dashboard'),
                 'guru' => redirect()->route('guru.dashboard'),
@@ -29,7 +28,6 @@ class RoleMiddleware
                 default => abort(403, 'Akses tidak sah !'),
             };
         }
-
         return $next($request);
     }
 }

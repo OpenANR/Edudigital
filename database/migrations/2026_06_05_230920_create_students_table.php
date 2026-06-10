@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nisn')->unique();
             $table->string('nama_siswa');
             $table->foreignId('class_id')->constrained('classrooms');
+            $table->foreignId('department_id')->constrained('departments');
             $table->timestamps();
         });
     }
