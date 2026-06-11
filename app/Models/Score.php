@@ -8,7 +8,7 @@ class Score extends Model
 {
     protected $table = 'scores';
     protected $fillable = [
-        'student_id', 'subject_id', 'tugas1', 'tugas2', 'asas',
+        'student_id', 'subject_id', 'tugas1', 'tugas2', 'asts',
         'tugas4', 'tugas5', 'asas', 'nilai_akhir', 'status'
     ];
 

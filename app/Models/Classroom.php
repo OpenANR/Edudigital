@@ -8,15 +8,18 @@ class Classroom extends Model
 {
     protected $table = 'classrooms';
     protected $fillable = [
-        'tingkat', 'nama_kelas', 'department_id', 'user_id'
+        'tingkat',
+        'nama_kelas',
+        'department_id',
+        'user_id'
     ];
 
-    public function departments() 
+    public function departments()
     {
         return $this->belongsTo(Department::class);
     }
 
-    public function users() 
+    public function users()
     {
         return $this->belongsTo(User::class);
     }
@@ -30,5 +33,9 @@ class Classroom extends Model
     {
         return $this->hasMany(TeachingSchedule::class);
     }
-    
+
+    public function scores()
+    {
+        return $this->hasMany(Score::class);
+    }
 }

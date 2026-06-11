@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('tugas2')->nullable();
             $table->integer('asts')->nullable();
             $table->integer('tugas4')->nullable();
-            $table->integer('tugas5')->nulable();
+            $table->integer('tugas5')->nullable();
             $table->integer('asas')->nullable();
             $table->integer('nilai_akhir')->nullable();
             $table->enum('status', ['tuntas', 'belum']);
