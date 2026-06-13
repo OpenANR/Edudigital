@@ -8,7 +8,7 @@ class Subject extends Model
 {
     protected $table = 'subjects';
     protected $fillable = [
-        'nama_mapel', 'kelompok_mapel', 'department_id'
+       'kode_mapel', 'nama_mapel'
     ];
 
     public function scores()

@@ -1,0 +1,442 @@
+// KONFIGURASI GLOBAL
+const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+
+// HELPER: Mencari Sheet dengan kebal spasi dan huruf besar/kecil
+function getSheetSafe(ss, sheetName) {
+  var target = sheetName.toLowerCase().replace(/\s+/g, '');
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].getName().toLowerCase().replace(/\s+/g, '') === target) {
+      return sheets[i];
+    }
+  }
+  return null;
+}
+
+// HELPER: Menyamakan Format NISN
+function normalizeNISN(nisn) {
+  if (!nisn) return "";
+  var str = nisn.toString().trim();
+  var stripped = str.replace(/^0+/, '');
+  return stripped === "" ? "0" : stripped; 
+}
+
+// HELPER: Super Clean Text (Menghapus spasi, koma, & simbol untuk pencocokan)
+function superClean(str) {
+  if (!str) return "";
+  return str.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// FUNGSI 1: Setup Database Otomatis
+function setupDatabase() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  var sheetAdmin = getSheetSafe(ss, "Admin");
+  if (!sheetAdmin) {
+    sheetAdmin = ss.insertSheet("Admin");
+    sheetAdmin.appendRow(["Username", "Password", "Nama_Admin"]);
+    sheetAdmin.appendRow(["admin", "edudigital", "Administrator"]); 
+  }
+
+  var sheetGuru = getSheetSafe(ss, "Guru");
+  if (!sheetGuru) {
+    sheetGuru = ss.insertSheet("Guru");
+    sheetGuru.appendRow(["Kode_Guru", "Tgl_Lahir", "Nama_Guru", "Kelas_Diampu", "Mapel_Diampu"]);
+  }
+
+  var sheetWali = getSheetSafe(ss, "Wali Kelas");
+  if (!sheetWali) {
+    sheetWali = ss.insertSheet("Wali Kelas");
+    sheetWali.appendRow(["Kode_Guru", "Tgl_Lahir", "Nama_Guru", "Kelas_Diampu"]);
+  }
+
+  var sheetAdminInput = getSheetSafe(ss, "AdminInput");
+  if (!sheetAdminInput) {
+    sheetAdminInput = ss.insertSheet("AdminInput");
+    sheetAdminInput.appendRow(["Kelas", "NISN", "Mapel", "Tugas_1", "Tugas_2", "ASTS_GENAP"]);
+  }
+
+  var sheetSettings = getSheetSafe(ss, "Settings");
+  if (!sheetSettings) {
+    sheetSettings = ss.insertSheet("Settings");
+    sheetSettings.appendRow(["Kunci", "Nilai"]);
+    sheetSettings.appendRow(["Penilaian_Buka", "2024-01-01T00:00"]);
+    sheetSettings.appendRow(["Penilaian_Tutup", "2030-12-31T23:59"]);
+    sheetSettings.appendRow(["Tugas_Buka", "2024-01-01T00:00"]);
+    sheetSettings.appendRow(["Tugas_Tutup", "2030-12-31T23:59"]);
+  }
+
+  var sheetSiswa = getSheetSafe(ss, "Siswa");
+  if (!sheetSiswa) {
+    sheetSiswa = ss.insertSheet("Siswa");
+    sheetSiswa.appendRow(["Kelas", "NISN", "Nama_Siswa"]);
+  }
+
+  var sheetMapel = getSheetSafe(ss, "Mapel");
+  if (!sheetMapel) {
+    sheetMapel = ss.insertSheet("Mapel");
+    sheetMapel.appendRow(["Nama_Mapel", "Tipe"]);
+    sheetMapel.appendRow(["Matematika", "Matematika"]);
+    sheetMapel.appendRow(["Bahasa Indonesia", "Reguler"]);
+    sheetMapel.appendRow(["Kejuruan TSM", "Produktif"]); // Contoh Produktif
+  }
+
+  var sheetNilai = getSheetSafe(ss, "Nilai");
+  if (!sheetNilai) {
+    sheetNilai = ss.insertSheet("Nilai");
+    sheetNilai.appendRow([
+      "Tanggal_Input", "Kode_Guru", "Kelas", "Mapel", "NISN", "Nama_Siswa",
+      "Tugas_1", "Tugas_2", "ASTS_GENAP", "Tugas_4", "Tugas_5",
+      "Mode_ASAS_GENAP", "Input_PG_ASAS_GENAP", "Input_Es_ASAS_GENAP",
+      "Murni_ASAS_GENAP", "Perbaikan_ASAS_GENAP", "Ketuntasan", "Nilai_Akhir"
+    ]);
+    sheetNilai.setFrozenRows(1);
+  }
+
+  return "Setup Database Selesai!";
+}
+
+function getSettingsData() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = getSheetSafe(ss, "Settings");
+  if (!sheet) return { Penilaian_Buka: "", Penilaian_Tutup: "", Tugas_Buka: "", Tugas_Tutup: "" };
+  var data = sheet.getDataRange().getValues();
+  var set = {};
+  for (var i=0; i<data.length; i++) set[data[i][0]] = data[i][1];
+  return set;
+}
+
+function checkAkses() {
+  try {
+    var s = getSettingsData();
+    if (!s.Penilaian_Buka || !s.Penilaian_Tutup) return true; 
+    var now = new Date().getTime();
+    var start = new Date(s.Penilaian_Buka).getTime();
+    var end = new Date(s.Penilaian_Tutup).getTime();
+    return (now >= start && now <= end);
+  } catch(e) { return true; }
+}
+
+function checkAksesTugas() {
+  try {
+    var s = getSettingsData();
+    if (!s.Tugas_Buka || !s.Tugas_Tutup) return true;
+    var now = new Date().getTime();
+    var start = new Date(s.Tugas_Buka).getTime();
+    var end = new Date(s.Tugas_Tutup).getTime();
+    return (now >= start && now <= end);
+  } catch(e) { return true; }
+}
+
+function doPost(e) {
+  try {
+    var params = JSON.parse(e.postData.contents);
+    var action = params.action;
+    var result;
+
+    if (action === "login") result = verifyLogin(params.username, params.password, params.role);
+    else if (action === "getStudents") result = getStudentsByClass(params.kelas, params.mapel);
+    else if (action === "getWaliKelas") result = getRekapWaliKelas(params.kelas);
+    else if (action === "saveData") result = saveData(params.payload);
+    else if (action === "getSettings") result = { status: "success", data: getSettingsData() };
+    else if (action === "saveSettings") result = saveSettingsData(params.payload);
+    else result = { status: "error", message: "Action tidak dikenali" };
+
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getAllClasses(ss) {
+  var sheet = getSheetSafe(ss, "Siswa");
+  if(!sheet) return [];
+  var sSiswa = sheet.getDataRange().getValues();
+  var setKelas = {};
+  for(var x=1; x<sSiswa.length; x++) if(sSiswa[x][0]) setKelas[sSiswa[x][0].toString().trim()] = true;
+  return Object.keys(setKelas);
+}
+
+function getAllMapel(ss) {
+  var sheet = getSheetSafe(ss, "Mapel");
+  if(!sheet) return [];
+  var sMapel = sheet.getDataRange().getValues();
+  var arrMapel = [];
+  for(var y=1; y<sMapel.length; y++) if(sMapel[y][0]) arrMapel.push(sMapel[y][0].toString().trim());
+  return arrMapel;
+}
+
+function saveSettingsData(payload) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = getSheetSafe(ss, "Settings");
+    var data = sheet.getDataRange().getValues();
+    for (var i=0; i<data.length; i++) {
+      if (data[i][0] === "Penilaian_Buka") sheet.getRange(i+1, 2).setValue(payload.buka);
+      if (data[i][0] === "Penilaian_Tutup") sheet.getRange(i+1, 2).setValue(payload.tutup);
+      if (data[i][0] === "Tugas_Buka") sheet.getRange(i+1, 2).setValue(payload.tugasBuka);
+      if (data[i][0] === "Tugas_Tutup") sheet.getRange(i+1, 2).setValue(payload.tugasTutup);
+    }
+    return { status: "success", message: "Jadwal Waktu Berhasil Disimpan!" };
+  } catch(e) { return { status: "error", message: e.toString() }; }
+}
+
+function verifyLogin(username, password, selectedRole) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var userStr = username.toString().trim();
+    var passStr = password.toString().trim();
+
+    if (selectedRole === "Admin") {
+      var sheetAdmin = getSheetSafe(ss, "Admin");
+      if (!sheetAdmin) return { status: "error", message: "Sheet 'Admin' tidak ditemukan!" };
+      var dataAdmin = sheetAdmin.getDataRange().getValues();
+      for (var i = 1; i < dataAdmin.length; i++) {
+        if (dataAdmin[i][0].toString().trim() === userStr && dataAdmin[i][1].toString().trim() === passStr) {
+          return { status: "success", nama: dataAdmin[i][2], username: userStr, role: "Admin", kelas: getAllClasses(ss), mapel: getAllMapel(ss) };
+        }
+      }
+    }
+    else if (selectedRole === "Guru") {
+      var sheetGuru = getSheetSafe(ss, "Guru");
+      if (!sheetGuru) return { status: "error", message: "Sheet 'Guru' tidak ditemukan!" };
+      var dataGuru = sheetGuru.getDataRange().getValues();
+      var isFound = false; var guruName = ""; var setKelas = {}; var setMapel = {};
+      for (var i = 1; i < dataGuru.length; i++) {
+        if (dataGuru[i][0].toString().trim() === userStr && dataGuru[i][1].toString().trim() === passStr) {
+          isFound = true; guruName = dataGuru[i][2];
+          var kDiampu = dataGuru[i][3] ? dataGuru[i][3].toString() : "";
+          var mDiampu = dataGuru[i][4] ? dataGuru[i][4].toString() : "";
+          var arrKelasRow = kDiampu.replace(/[\r\n;]/g, ",").split(",").map(function(s){return s.trim();}).filter(Boolean);
+          var arrMapelRow = mDiampu.replace(/[\r\n;]/g, ",").split(",").map(function(s){return s.trim();}).filter(Boolean);
+          for(var k = 0; k < arrKelasRow.length; k++) setKelas[arrKelasRow[k]] = true;
+          for(var m = 0; m < arrMapelRow.length; m++) setMapel[arrMapelRow[m]] = true;
+        }
+      }
+      if (isFound) return { status: "success", nama: guruName, username: userStr, role: "Guru", kelas: Object.keys(setKelas), mapel: Object.keys(setMapel) };
+    }
+    else if (selectedRole === "Wali Kelas") {
+      var sheetWali = getSheetSafe(ss, "Wali Kelas");
+      if (!sheetWali) return { status: "error", message: "Sheet 'Wali Kelas' tidak ditemukan!" };
+      var dataWali = sheetWali.getDataRange().getValues();
+      var isFound = false; var waliName = ""; var setKelas = {};
+      for (var i = 1; i < dataWali.length; i++) {
+        if (dataWali[i][0].toString().trim() === userStr && dataWali[i][1].toString().trim() === passStr) {
+          isFound = true; waliName = dataWali[i][2];
+          var kDiampu = dataWali[i][3] ? dataWali[i][3].toString() : "";
+          var arrKelasRow = kDiampu.replace(/[\r\n;]/g, ",").split(",").map(function(s){return s.trim();}).filter(Boolean);
+          for(var k = 0; k < arrKelasRow.length; k++) setKelas[arrKelasRow[k]] = true;
+        }
+      }
+      if (isFound) return { status: "success", nama: waliName, username: userStr, role: "Wali Kelas", kelas: Object.keys(setKelas), mapel: [] };
+    }
+    return { status: "error", message: "Username, Password, atau Opsi Akses salah." };
+  } catch(e) { return { status: "error", message: "Terjadi kesalahan sistem: " + e.toString() }; }
+}
+
+// FUNGSI 4: Mengambil Data Siswa 
+function getStudentsByClass(kelasTarget, mapelTarget) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheetSiswa = getSheetSafe(ss, "Siswa");
+    var sheetAdminInput = getSheetSafe(ss, "AdminInput");
+    var sheetNilai = getSheetSafe(ss, "Nilai");
+
+    var dataSiswa = sheetSiswa.getDataRange().getValues();
+    var dataAdmin = sheetAdminInput ? sheetAdminInput.getDataRange().getValues() : [];
+    var students = [];
+
+    var kTargetClean = superClean(kelasTarget);
+    var mTargetClean = superClean(mapelTarget);
+
+    // KUNCI PERBAIKAN: Cari Tipe Mapel (Produktif / Reguler)
+    var currentMapelType = "Reguler";
+    var sheetMapel = getSheetSafe(ss, "Mapel");
+    if(sheetMapel) {
+      var dataMapel = sheetMapel.getDataRange().getValues();
+      for(var m=1; m<dataMapel.length; m++) {
+        if(superClean(dataMapel[m][0]) === mTargetClean) {
+          currentMapelType = dataMapel[m][1].toString().trim();
+          break;
+        }
+      }
+    }
+
+    var adIdx = { kelas: 0, nisn: 1, mapel: 2, t1: 3, t2: 4, asts: 5 };
+    if (dataAdmin.length > 0) {
+      var head = dataAdmin[0].map(function(h) { return superClean(h); });
+      var k = head.findIndex(function(h) { return h.indexOf("kelas") >= 0; }); if(k >= 0) adIdx.kelas = k;
+      var n = head.findIndex(function(h) { return h.indexOf("nis") >= 0; }); if(n >= 0) adIdx.nisn = n;
+      var mt = head.findIndex(function(h) { return h.indexOf("mapel") >= 0 || h.indexOf("pelajaran") >= 0; }); if(mt >= 0) adIdx.mapel = mt;
+      var t1 = head.findIndex(function(h) { return h.indexOf("tugas1") >= 0 || h === "t1"; }); if(t1 >= 0) adIdx.t1 = t1;
+      var t2 = head.findIndex(function(h) { return h.indexOf("tugas2") >= 0 || h === "t2"; }); if(t2 >= 0) adIdx.t2 = t2;
+      var asts = head.findIndex(function(h) { return h.indexOf("asts") >= 0 || h.indexOf("tengah") >= 0; }); if(asts >= 0) adIdx.asts = asts;
+    }
+
+    for (var i = 1; i < dataSiswa.length; i++) {
+      var kelasSiswa = superClean(dataSiswa[i][0]);
+      if (kelasSiswa === kTargetClean) {
+        var nisn = dataSiswa[i][1].toString();
+        var normalizedNisnSiswa = normalizeNISN(nisn);
+        
+        var t1="", t2="", asts="";
+        for(var j = 1; j < dataAdmin.length; j++){
+          var aKelas = superClean(dataAdmin[j][adIdx.kelas]);
+          var aMapel = superClean(dataAdmin[j][adIdx.mapel]);
+          var aNisn = dataAdmin[j][adIdx.nisn] ? dataAdmin[j][adIdx.nisn].toString() : "";
+          
+          if(aKelas === kTargetClean && normalizeNISN(aNisn) === normalizedNisnSiswa && aMapel === mTargetClean) {
+            t1 = (dataAdmin[j][adIdx.t1] !== "" && dataAdmin[j][adIdx.t1] != null) ? dataAdmin[j][adIdx.t1].toString() : ""; 
+            t2 = (dataAdmin[j][adIdx.t2] !== "" && dataAdmin[j][adIdx.t2] != null) ? dataAdmin[j][adIdx.t2].toString() : ""; 
+            asts = (dataAdmin[j][adIdx.asts] !== "" && dataAdmin[j][adIdx.asts] != null) ? dataAdmin[j][adIdx.asts].toString() : "";
+            break;
+          }
+        }
+        students.push({
+          nisn: nisn, nama: dataSiswa[i][2].toString(),
+          tugas1: t1, tugas2: t2, asts: asts, 
+          tugas4: "", tugas5: "", modeAsas: "", pgAsas: "", essaiAsas: "",
+          murniAsas: "", perbaikan: "", ketuntasan: "", nilaiAkhir: ""
+        });
+      }
+    }
+
+    if (sheetNilai && students.length > 0) {
+      var dataNilai = sheetNilai.getDataRange().getValues();
+      for (var j = 1; j < dataNilai.length; j++) {
+        var rowKelas = superClean(dataNilai[j][2]);
+        var rowMapel = superClean(dataNilai[j][3]);
+        var rowNIS = normalizeNISN(dataNilai[j][4]);
+
+        if (rowKelas === kTargetClean && rowMapel === mTargetClean) {
+          for (var k = 0; k < students.length; k++) {
+            if (normalizeNISN(students[k].nisn) === rowNIS) {
+              students[k].tugas1 = dataNilai[j][6] !== "" ? dataNilai[j][6].toString() : "";
+              students[k].tugas2 = dataNilai[j][7] !== "" ? dataNilai[j][7].toString() : "";
+              students[k].asts = dataNilai[j][8] !== "" ? dataNilai[j][8].toString() : "";
+              students[k].tugas4 = dataNilai[j][9] !== "" ? dataNilai[j][9].toString() : "";
+              students[k].tugas5 = dataNilai[j][10] !== "" ? dataNilai[j][10].toString() : "";
+              students[k].modeAsas = dataNilai[j][11] !== "" ? dataNilai[j][11].toString() : "";
+              students[k].pgAsas = dataNilai[j][12] !== "" ? dataNilai[j][12].toString() : "";
+              students[k].essaiAsas = dataNilai[j][13] !== "" ? dataNilai[j][13].toString() : "";
+              students[k].murniAsas = dataNilai[j][14] !== "" ? dataNilai[j][14].toString() : "";
+              students[k].perbaikan = dataNilai[j][15] !== "" ? dataNilai[j][15].toString() : "";
+              students[k].ketuntasan = dataNilai[j][16] !== "" ? dataNilai[j][16].toString() : "";
+              students[k].nilaiAkhir = dataNilai[j][17] !== "" ? dataNilai[j][17].toString() : "";
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    var isAksesBuka = checkAkses();
+    var isAksesTugasBuka = checkAksesTugas();
+    
+    // Kembalikan beserta tipeMapel
+    return { status: "success", data: students, isAksesBuka: isAksesBuka, isAksesTugasBuka: isAksesTugasBuka, tipeMapel: currentMapelType };
+  } catch (e) { return { status: "error", message: e.toString() }; }
+}
+
+function getRekapWaliKelas(kelasTarget) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheetSiswa = getSheetSafe(ss, "Siswa");
+    var sheetMapel = getSheetSafe(ss, "Mapel");
+    var sheetNilai = getSheetSafe(ss, "Nilai");
+
+    var mapels = [];
+    var dataMapel = sheetMapel.getDataRange().getValues();
+    for(var m = 1; m < dataMapel.length; m++) { if(dataMapel[m][0]) mapels.push(dataMapel[m][0].toString()); }
+
+    var students = [];
+    var dataSiswa = sheetSiswa.getDataRange().getValues();
+    for (var i = 1; i < dataSiswa.length; i++) {
+      if (superClean(dataSiswa[i][0]) === superClean(kelasTarget)) {
+        students.push({ nisn: dataSiswa[i][1].toString(), nama: dataSiswa[i][2].toString(), scores: {} });
+      }
+    }
+
+    if (sheetNilai && students.length > 0) {
+      var dataNilai = sheetNilai.getDataRange().getValues();
+      for (var j = 1; j < dataNilai.length; j++) {
+        if (superClean(dataNilai[j][2]) === superClean(kelasTarget)) {
+          var rMapel = dataNilai[j][3].toString();
+          var rNisn = normalizeNISN(dataNilai[j][4]);
+          var rAkhir = dataNilai[j][17]; 
+          for (var k = 0; k < students.length; k++) {
+            if (normalizeNISN(students[k].nisn) === rNisn) {
+              students[k].scores[rMapel] = rAkhir !== "" ? rAkhir : "-";
+              break;
+            }
+          }
+        }
+      }
+    }
+    return { status: "success", mapels: mapels, data: students };
+  } catch (e) { return { status: "error", message: e.toString() }; }
+}
+
+function saveData(payload) {
+  try {
+    if (payload.role !== "Admin" && !checkAkses()) {
+      return { status: "error", message: "Gagal Menyimpan: Waktu Pengisian Nilai Telah Ditutup!" };
+    }
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheetNilai = getSheetSafe(ss, "Nilai");
+    
+    var kelas = payload.kelas;
+    var mapel = payload.mapel;
+    var guru = payload.guru;
+    var tglInput = new Date().toLocaleString('id-ID');
+    var dataSiswaList = payload.dataSiswa;
+    var dataNilai = sheetNilai.getDataRange().getValues();
+
+    var kTargetClean = superClean(kelas);
+    var mTargetClean = superClean(mapel);
+    var aksesTugas = checkAksesTugas();
+
+    for (var i = 0; i < dataSiswaList.length; i++) {
+      var siswa = dataSiswaList[i];
+      var targetNISN = normalizeNISN(siswa.nisn);
+      var isUpdated = false;
+      
+      var t1ToSave = siswa.tugas1;
+      var t2ToSave = siswa.tugas2;
+      var astsToSave = siswa.asts;
+
+      for (var j = 1; j < dataNilai.length; j++) {
+        var rowNISN = normalizeNISN(dataNilai[j][4]);
+        var rowKelas = superClean(dataNilai[j][2]);
+        var rowMapel = superClean(dataNilai[j][3]);
+        
+        if (rowKelas === kTargetClean && rowMapel === mTargetClean && rowNISN === targetNISN) {
+          if (payload.role !== "Admin" && !aksesTugas) {
+            t1ToSave = dataNilai[j][6];
+            t2ToSave = dataNilai[j][7];
+            astsToSave = dataNilai[j][8];
+          }
+          sheetNilai.getRange(j + 1, 1, 1, 18).setValues([[
+            tglInput, guru, kelas, mapel, "'" + siswa.nisn, siswa.nama,
+            t1ToSave, t2ToSave, astsToSave, siswa.tugas4, siswa.tugas5,
+            siswa.modeAsas, "'" + siswa.pgAsas, "'" + siswa.essaiAsas,
+            siswa.murniAsas, siswa.perbaikan, siswa.ketuntasan, siswa.nilaiAkhir
+          ]]);
+          isUpdated = true;
+          break;
+        }
+      }
+
+      if (!isUpdated) {
+        sheetNilai.appendRow([
+          tglInput, guru, kelas, mapel, "'" + siswa.nisn, siswa.nama,
+          t1ToSave, t2ToSave, astsToSave, siswa.tugas4, siswa.tugas5,
+          siswa.modeAsas, "'" + siswa.pgAsas, "'" + siswa.essaiAsas,
+          siswa.murniAsas, siswa.perbaikan, siswa.ketuntasan, siswa.nilaiAkhir
+        ]);
+      }
+    }
+    return { status: "success", message: "Seluruh Data Nilai Berhasil Disimpan!" };
+  } catch (e) { return { status: "error", message: e.toString() }; }
+}

@@ -21,6 +21,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
         Route::get('/managedepartment', [AdminController::class, 'manageDepartment'])->name('admin.manageDepartment');
         Route::get('/managestudent', [AdminController::class, 'manageStudent'])->name('admin.manageStudent');
+        Route::get('/managescore', [AdminController::class, 'manageScore'])->name('admin.manageScore');
+        Route::get('/filter', [AdminController::class, 'manageScore'])->name('admin.manageScore');
+        Route::post('/savescore', [AdminController::class, 'saveScore'])->name('admin.saveScore');
     });
 
     Route::middleware('role:guru')->prefix('guru')->group(function () {
