@@ -21,8 +21,17 @@ return new class extends Migration
             $table->integer('tugas4')->nullable();
             $table->integer('tugas5')->nullable();
             $table->integer('asas')->nullable();
+            $table->string('pg_asas')->nullable();
+            $table->integer('n1')->nullable();
+            $table->integer('n2')->nullable();
+            $table->integer('n3')->nullable();
+            $table->integer('n4')->nullable();
+            $table->integer('n5')->nullable();
+            $table->integer('nilai_essai')->nullable();
+            $table->integer('murni_asas_genap')->nullable();
+            $table->integer('perbaikan')->nullable();
+            $table->enum('status', ['tuntas', 'belum'])->nullable();
             $table->integer('nilai_akhir')->nullable();
-            $table->enum('status', ['tuntas', 'belum']);
             $table->timestamps();
         });
     }
