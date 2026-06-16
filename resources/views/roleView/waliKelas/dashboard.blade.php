@@ -1,6 +1,6 @@
 @extends('layouts.customPage.sidebar')
 
-@section('title', 'Administrator | Edudigital')
+@section('title', 'Dashboard | Edudigital')
 
 @section('content')
 <h1>Selamat Datang, {{ Auth::user()->name }}</h1>

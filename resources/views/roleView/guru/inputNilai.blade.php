@@ -1,13 +1,13 @@
 @extends('layouts.customPage.sidebar')
 
-@section('title', 'Input Nilai | Edudigital')
+@section('title', 'Input Nilai Guru | Edudigital')
 
 @section('content')
 <div class="space-y-6">
     <!-- Header Page -->
     <div class="border-b border-slate-200 pb-4">
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Kelola Input Nilai</h1>
-        <p class="text-sm text-slate-500 mt-1">Masukkan dan perbarui nilai siswa kelas dan mata pelajaran.</p>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Kelola Input Nilai (Guru)</h1>
+        <p class="text-sm text-slate-500 mt-1">Masukkan dan perbarui nilai siswa kelas dan mata pelajaran yang Anda ampu.</p>
     </div>
 
     <!-- Session Notifications -->
@@ -25,57 +25,38 @@
         </div>
     @endif
 
-    <!-- Pengaturan Akses Penilaian Card -->
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <div class="flex items-center space-x-3 mb-4">
-            <span class="text-2xl text-slate-500">⚙️</span>
-            <div>
-                <h2 class="text-lg font-bold text-slate-900">Pengaturan Akses Penilaian</h2>
-                <p class="text-xs text-slate-500">Atur rentang waktu kapan guru bisa menginput dan menyimpan nilai.</p>
-            </div>
-        </div>
-        
-        <form action="{{ route('admin.saveSettings') }}" method="POST" class="space-y-4">
-            @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Tugas & ASTS -->
-                <div class="space-y-4 border border-slate-100 p-4 rounded-lg bg-slate-50/50">
-                    <h3 class="text-sm font-bold text-slate-700">Tugas & ASTS</h3>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Buka Edit Tugas & ASTS</label>
-                        <input type="datetime-local" name="buka_tugas_asts" value="{{ isset($settings['buka_tugas_asts']) ? \Carbon\Carbon::parse($settings['buka_tugas_asts'])->format('Y-m-d\TH:i') : '' }}" class="block w-full rounded-lg border-slate-300 text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tutup Edit Tugas & ASTS</label>
-                        <input type="datetime-local" name="tutup_tugas_asts" value="{{ isset($settings['tutup_tugas_asts']) ? \Carbon\Carbon::parse($settings['tutup_tugas_asts'])->format('Y-m-d\TH:i') : '' }}" class="block w-full rounded-lg border-slate-300 text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-                    </div>
-                </div>
-                
-                <!-- ASAS GENAP -->
-                <div class="space-y-4 border border-slate-100 p-4 rounded-lg bg-slate-50/50">
-                    <h3 class="text-sm font-bold text-slate-700">ASAS GENAP</h3>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Buka Edit ASAS GENAP</label>
-                        <input type="datetime-local" name="buka_asas" value="{{ isset($settings['buka_asas']) ? \Carbon\Carbon::parse($settings['buka_asas'])->format('Y-m-d\TH:i') : '' }}" class="block w-full rounded-lg border-slate-300 text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tutup Edit ASAS GENAP</label>
-                        <input type="datetime-local" name="tutup_asas" value="{{ isset($settings['tutup_asas']) ? \Carbon\Carbon::parse($settings['tutup_asas'])->format('Y-m-d\TH:i') : '' }}" class="block w-full rounded-lg border-slate-300 text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-                    </div>
+    <!-- Lock Notifications -->
+    @if(isset($isTugasOpen) && isset($isAsasOpen))
+        @if(!$isTugasOpen && !$isAsasOpen)
+            <div class="flex items-start p-4 text-rose-800 bg-rose-50 border border-rose-200 rounded-lg shadow-sm">
+                <span class="text-lg mr-3">🔒</span>
+                <div>
+                    <h4 class="font-bold text-sm">Akses Penilaian Ditutup!</h4>
+                    <p class="text-xs mt-1 text-rose-600">Waktu pengisian nilai telah berakhir atau belum dimulai. Anda hanya dapat melihat data (Read Only).</p>
                 </div>
             </div>
-            
-            <div class="flex justify-end">
-                <button type="submit" class="inline-flex justify-center items-center py-2 px-6 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
-                    Simpan Jadwal
-                </button>
+        @elseif(!$isTugasOpen)
+            <div class="flex items-start p-4 text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
+                <span class="text-lg mr-3">⚠️</span>
+                <div>
+                    <h4 class="font-bold text-sm">Akses Pengeditan Tugas & ASTS Ditutup!</h4>
+                    <p class="text-xs mt-1 text-yellow-600">Anda hanya dapat mengedit nilai ASAS Genap. Kolom Tugas & ASTS dikunci (Read Only).</p>
+                </div>
             </div>
-        </form>
-    </div>
+        @elseif(!$isAsasOpen)
+            <div class="flex items-start p-4 text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
+                <span class="text-lg mr-3">⚠️</span>
+                <div>
+                    <h4 class="font-bold text-sm">Akses Pengeditan ASAS Genap Ditutup!</h4>
+                    <p class="text-xs mt-1 text-yellow-600">Anda hanya dapat mengedit nilai Tugas & ASTS. Kolom ASAS Genap dikunci (Read Only).</p>
+                </div>
+            </div>
+        @endif
+    @endif
 
     <!-- Filter Card -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <form action="{{ route('admin.manageScore') }}" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+        <form action="{{ route('guru.manageScore') }}" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Pilih Kelas</label>
                 <select name="classroom_id" class="block w-full rounded-lg border-slate-300 text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
@@ -122,7 +103,7 @@
             @if($selectedSubject && $selectedSubject->kelompok_mapel === 'regular')
                 <div class="flex items-center space-x-3 w-full sm:w-auto">
                     <label for="global-asas-mode" class="text-sm font-semibold text-slate-700 shrink-0">Pilih Mode Asas:</label>
-                    <select id="global-asas-mode" onchange="recalculateAll()" class="block w-full sm:w-auto rounded-lg border-slate-300 text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <select id="global-asas-mode" onchange="recalculateAll()" {{ !$isAsasOpen ? 'disabled' : '' }} class="block w-full sm:w-auto rounded-lg border-slate-300 text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         <option value="FastTrack" selected>Fast Track (Ketik Jumlah Benar)</option>
                         <option value="Benar">Ketik Nomor Benar (Koma)</option>
                         <option value="Salah">Ketik Nomor Salah (Koma)</option>
@@ -131,7 +112,7 @@
             @endif
         </div>
 
-        <form action="{{ route('admin.saveScore') }}" method="POST">
+        <form action="{{ route('guru.saveScore') }}" method="POST">
             @csrf
             <input type="hidden" name="subject_id" value="{{ $subjectId }}">
             @if($selectedSubject && $selectedSubject->kelompok_mapel === 'regular')
@@ -146,21 +127,21 @@
                             <tr class="bg-slate-50 text-slate-700 uppercase font-bold text-xs tracking-wider border-b border-slate-200">
                                 <th class="px-4 py-3 text-center border-r border-slate-200">NO</th>
                                 <th class="px-6 py-3 text-left border-r border-slate-200 sticky left-0 bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">NAMA SISWA / NISN</th>
-                                <th class="px-3 py-3 text-center border-r border-slate-200 bg-slate-100">TUGAS 1</th>
-                                <th class="px-3 py-3 text-center border-r border-slate-200 bg-slate-100">TUGAS 2</th>
-                                <th class="px-4 py-3 text-center border-r border-slate-200 bg-slate-100">ASTS</th>
-                                <th class="px-3 py-3 text-center border-r border-slate-200 bg-yellow-50">TUGAS 4</th>
-                                <th class="px-3 py-3 text-center border-r border-slate-200 bg-yellow-50">TUGAS 5</th>
+                                <th class="px-3 py-3 text-center border-r border-slate-200 bg-slate-100">TUGAS 1 {{ !$isTugasOpen ? '🔒' : '' }}</th>
+                                <th class="px-3 py-3 text-center border-r border-slate-200 bg-slate-100">TUGAS 2 {{ !$isTugasOpen ? '🔒' : '' }}</th>
+                                <th class="px-4 py-3 text-center border-r border-slate-200 bg-slate-100">ASTS {{ !$isTugasOpen ? '🔒' : '' }}</th>
+                                <th class="px-3 py-3 text-center border-r border-slate-200 bg-yellow-50">TUGAS 4 {{ !$isTugasOpen ? '🔒' : '' }}</th>
+                                <th class="px-3 py-3 text-center border-r border-slate-200 bg-yellow-50">TUGAS 5 {{ !$isTugasOpen ? '🔒' : '' }}</th>
                                 @if($selectedSubject && $selectedSubject->kelompok_mapel === "regular")
-                                    <th class="px-4 py-3 text-center border-r border-slate-200 bg-sky-50">INPUT PG ASAS GENAP</th>
+                                    <th class="px-4 py-3 text-center border-r border-slate-200 bg-sky-50">INPUT PG ASAS GENAP {{ !$isAsasOpen ? '🔒' : '' }}</th>
                                     <th class="px-4 py-3 text-center border-r border-slate-200 bg-sky-50">
-                                        <div>INPUT ESSAI (PER SOAL)</div>
+                                        <div>INPUT ESSAI (PER SOAL) {{ !$isAsasOpen ? '🔒' : '' }}</div>
                                         <div class="text-[9px] text-slate-500 font-normal mt-1 normal-case">Pilih skor: 8 (Benar) | 4 (Sebagian) | 2 (Ongkos) | 0</div>
                                     </th>
                                     <th class="px-4 py-3 text-center border-r border-slate-200 bg-sky-100">MURNI ASAS GENAP</th>
-                                    <th class="px-4 py-3 text-center border-r border-slate-200 bg-rose-50">PERBAIKAN</th>
+                                    <th class="px-4 py-3 text-center border-r border-slate-200 bg-rose-50">PERBAIKAN {{ !$isAsasOpen ? '🔒' : '' }}</th>
                                 @else
-                                    <th class="px-4 py-3 text-center border-r border-slate-200 bg-sky-50">NILAI ASAS</th>
+                                    <th class="px-4 py-3 text-center border-r border-slate-200 bg-sky-50">NILAI ASAS {{ !$isAsasOpen ? '🔒' : '' }}</th>
                                 @endif
                                 <th class="px-4 py-3 text-center border-r border-slate-200 bg-slate-100">KETUNTASAN</th>
                                 <th class="px-4 py-3 text-center bg-emerald-50">NILAI AKHIR</th>
@@ -180,25 +161,25 @@
 
                                     <!-- Tasks and ASTS -->
                                     <td class="px-3 py-3.5 border-r border-slate-200 bg-slate-50/50">
-                                        <input type="number" name="scores[{{ $student->id }}][tugas1]" id="t1-{{ $student->id }}" value="{{ $currentScore?->tugas1 }}" oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 't1', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
+                                        <input type="number" name="scores[{{ $student->id }}][tugas1]" id="t1-{{ $student->id }}" value="{{ $currentScore?->tugas1 }}" {{ !$isTugasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 't1', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
                                     </td>
                                     <td class="px-3 py-3.5 border-r border-slate-200 bg-slate-50/50">
-                                        <input type="number" name="scores[{{ $student->id }}][tugas2]" id="t2-{{ $student->id }}" value="{{ $currentScore?->tugas2 }}" oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 't2', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
+                                        <input type="number" name="scores[{{ $student->id }}][tugas2]" id="t2-{{ $student->id }}" value="{{ $currentScore?->tugas2 }}" {{ !$isTugasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 't2', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
                                     </td>
                                     <td class="px-3 py-3.5 border-r border-slate-200 bg-slate-50/50">
-                                        <input type="number" name="scores[{{ $student->id }}][asts]" id="asts-{{ $student->id }}" value="{{ $currentScore?->asts }}" oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 'asts', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-bold p-1.5">
+                                        <input type="number" name="scores[{{ $student->id }}][asts]" id="asts-{{ $student->id }}" value="{{ $currentScore?->asts }}" {{ !$isTugasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 'asts', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-bold p-1.5">
                                     </td>
                                     <td class="px-3 py-3.5 border-r border-slate-200 bg-yellow-50/20">
-                                        <input type="number" name="scores[{{ $student->id }}][tugas4]" id="t4-{{ $student->id }}" value="{{ $currentScore?->tugas4 }}" oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 't4', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
+                                        <input type="number" name="scores[{{ $student->id }}][tugas4]" id="t4-{{ $student->id }}" value="{{ $currentScore?->tugas4 }}" {{ !$isTugasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 't4', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
                                     </td>
                                     <td class="px-3 py-3.5 border-r border-slate-200 bg-yellow-50/20">
-                                        <input type="number" name="scores[{{ $student->id }}][tugas5]" id="t5-{{ $student->id }}" value="{{ $currentScore?->tugas5 }}" oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 't5', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
+                                        <input type="number" name="scores[{{ $student->id }}][tugas5]" id="t5-{{ $student->id }}" value="{{ $currentScore?->tugas5 }}" {{ !$isTugasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 't5', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
                                     </td>
 
                                     <!-- ASAS Fields -->
                                     @if($selectedSubject && $selectedSubject->kelompok_mapel === "regular")
                                         <td class="px-3 py-3.5 border-r border-slate-200 bg-sky-50/20">
-                                            <input type="text" name="scores[{{ $student->id }}][pg_asas]" id="pg-{{ $student->id }}" value="{{ $currentScore?->pg_asas }}" oninput="calculateMurni('{{ $student->id }}')" onkeydown="handleEnter(event, 'pg', {{ $loop->index }})" placeholder="Cth: 24" class="block w-24 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm p-1.5">
+                                            <input type="text" name="scores[{{ $student->id }}][pg_asas]" id="pg-{{ $student->id }}" value="{{ $currentScore?->pg_asas }}" {{ !$isAsasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} oninput="calculateMurni('{{ $student->id }}')" onkeydown="handleEnter(event, 'pg', {{ $loop->index }})" placeholder="Cth: 24" class="block w-24 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm p-1.5">
                                         </td>
                                         <td class="px-3 py-3.5 border-r border-slate-200 bg-sky-50/20">
                                             @php
@@ -211,7 +192,7 @@
                                             <div class="flex items-center justify-center gap-2">
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">N1</span>
-                                                    <select name="scores[{{ $student->id }}][n1]" id="n1-{{ $student->id }}" onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
+                                                    <select name="scores[{{ $student->id }}][n1]" id="n1-{{ $student->id }}" {{ !$isAsasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
                                                         <option value="0" {{ $n1 == 0 ? 'selected' : '' }}>0</option>
                                                         <option value="2" {{ $n1 == 2 ? 'selected' : '' }}>2</option>
                                                         <option value="4" {{ $n1 == 4 ? 'selected' : '' }}>4</option>
@@ -220,7 +201,7 @@
                                                 </div>
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">N2</span>
-                                                    <select name="scores[{{ $student->id }}][n2]" id="n2-{{ $student->id }}" onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
+                                                    <select name="scores[{{ $student->id }}][n2]" id="n2-{{ $student->id }}" {{ !$isAsasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
                                                         <option value="0" {{ $n2 == 0 ? 'selected' : '' }}>0</option>
                                                         <option value="2" {{ $n2 == 2 ? 'selected' : '' }}>2</option>
                                                         <option value="4" {{ $n2 == 4 ? 'selected' : '' }}>4</option>
@@ -229,7 +210,7 @@
                                                 </div>
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">N3</span>
-                                                    <select name="scores[{{ $student->id }}][n3]" id="n3-{{ $student->id }}" onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
+                                                    <select name="scores[{{ $student->id }}][n3]" id="n3-{{ $student->id }}" {{ !$isAsasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
                                                         <option value="0" {{ $n3 == 0 ? 'selected' : '' }}>0</option>
                                                         <option value="2" {{ $n3 == 2 ? 'selected' : '' }}>2</option>
                                                         <option value="4" {{ $n3 == 4 ? 'selected' : '' }}>4</option>
@@ -238,7 +219,7 @@
                                                 </div>
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">N4</span>
-                                                    <select name="scores[{{ $student->id }}][n4]" id="n4-{{ $student->id }}" onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
+                                                    <select name="scores[{{ $student->id }}][n4]" id="n4-{{ $student->id }}" {{ !$isAsasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
                                                         <option value="0" {{ $n4 == 0 ? 'selected' : '' }}>0</option>
                                                         <option value="2" {{ $n4 == 2 ? 'selected' : '' }}>2</option>
                                                         <option value="4" {{ $n4 == 4 ? 'selected' : '' }}>4</option>
@@ -247,7 +228,7 @@
                                                 </div>
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">N5</span>
-                                                    <select name="scores[{{ $student->id }}][n5]" id="n5-{{ $student->id }}" onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
+                                                    <select name="scores[{{ $student->id }}][n5]" id="n5-{{ $student->id }}" {{ !$isAsasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} onchange="calculateMurni('{{ $student->id }}')" class="block w-14 rounded border-slate-300 text-xs font-semibold py-1 px-1.5 focus:border-indigo-500 focus:ring-indigo-500 cursor-pointer text-left pl-3.5 pr-4">
                                                         <option value="0" {{ $n5 == 0 ? 'selected' : '' }}>0</option>
                                                         <option value="2" {{ $n5 == 2 ? 'selected' : '' }}>2</option>
                                                         <option value="4" {{ $n5 == 4 ? 'selected' : '' }}>4</option>
@@ -260,11 +241,11 @@
                                             <input type="number" id="murni-{{ $student->id }}" value="{{ $currentScore?->murni_asas_genap ?? 0 }}" readonly class="block w-16 mx-auto rounded-md border-transparent bg-slate-100 text-slate-700 text-center text-sm font-bold p-1.5 cursor-not-allowed">
                                         </td>
                                         <td class="px-3 py-3.5 border-r border-slate-200 bg-rose-50/20">
-                                            <input type="number" name="scores[{{ $student->id }}][perbaikan]" id="perbaikan-{{ $student->id }}" value="{{ $currentScore?->perbaikan }}" oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 'perbaikan', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 text-rose-600 shadow-sm focus:border-rose-500 focus:ring-rose-500 text-center text-sm font-bold p-1.5">
+                                            <input type="number" name="scores[{{ $student->id }}][perbaikan]" id="perbaikan-{{ $student->id }}" value="{{ $currentScore?->perbaikan }}" {{ !$isAsasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 'perbaikan', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 text-rose-600 shadow-sm focus:border-rose-500 focus:ring-rose-500 text-center text-sm font-bold p-1.5">
                                         </td>
                                     @else
                                         <td class="px-3 py-3.5 border-r border-slate-200 bg-sky-50/20">
-                                            <input type="number" name="scores[{{ $student->id }}][murni_asas_genap]" id="murni-asas-{{ $student->id }}" value="{{ $currentScore?->murni_asas_genap }}" oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 'murni-asas', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
+                                            <input type="number" name="scores[{{ $student->id }}][murni_asas_genap]" id="murni-asas-{{ $student->id }}" value="{{ $currentScore?->murni_asas_genap }}" {{ !$isAsasOpen ? 'disabled bg-slate-100 cursor-not-allowed text-slate-400' : '' }} oninput="this.value = this.value.replace(/[^0-9]/g, ''); calculateAkhir('{{ $student->id }}')" onkeydown="handleEnter(event, 'murni-asas', {{ $loop->index }})" min="0" class="block w-16 mx-auto rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-center text-sm font-semibold p-1.5">
                                         </td>
                                     @endif
 
@@ -287,7 +268,7 @@
                         <p class="text-rose-600 font-semibold flex items-center">
                             <span class="mr-1.5">⚠️</span> * Tugas 1, 2, & ASTS Diambil Otomatis dari Admin
                         </p>
-                        <p class="text-indigo-600">Untuk PG bisa ketik 'salah semua' atau 'benar semua'.</p>
+                        <p class="text-indigo-600">Untuk PG bisa ketik 'salah semua' or 'benar semua'.</p>
                         <p class="text-slate-500">Gunakan tombol 'Enter' untuk berpindah antar baris dengan cepat.</p>
                     </div>
 
@@ -295,9 +276,15 @@
                         <button type="button" onclick="exportExcel()" class="w-full sm:w-auto inline-flex justify-center items-center py-3 px-6 border border-slate-300 rounded-lg shadow-sm text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                             📥 Ekspor Excel
                         </button>
-                        <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center py-3 px-8 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
-                            Simpan Seluruh Nilai
-                        </button>
+                        @if($isTugasOpen || $isAsasOpen)
+                            <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center py-3 px-8 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                                Simpan Seluruh Nilai
+                            </button>
+                        @else
+                            <button type="button" disabled class="w-full sm:w-auto inline-flex justify-center items-center py-3 px-8 border border-transparent rounded-lg shadow-md text-sm font-semibold text-slate-400 bg-slate-200 cursor-not-allowed">
+                                Penyimpanan Dikunci
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -506,7 +493,7 @@
             const maxCols = clone.querySelector('tr').querySelectorAll('th, td').length;
 
             const metaRows = [
-                ['LAPORAN NILAI SISWA', maxCols],
+                ['LAPORAN NILAI SISWA (GURU)', maxCols],
                 ['Kelas: ' + className, maxCols],
                 ['Mata Pelajaran: ' + subjectName, maxCols],
                 ['Tanggal Ekspor: ' + new Date().toLocaleDateString('id-ID'), maxCols],

@@ -8,12 +8,55 @@ use App\Models\Subject;
 use App\Models\Student;
 use App\Models\Score;
 use App\Models\Department;
+use App\Models\Settings;
 
 class AdminController extends Controller
 {
     public function dashboard()
     {
-        return view('roleView.admin.dashboard');
+        $subjectsCount = Subject::count();
+        $classrooms = Classroom::all();
+        $classStats = [];
+        $totalCompletedClasses = 0;
+
+        foreach ($classrooms as $class) {
+            $students = Student::where('class_id', $class->id)->get();
+            $studentsCount = $students->count();
+            $expected = $studentsCount * $subjectsCount;
+            
+            if ($expected > 0) {
+                $studentIds = $students->pluck('id');
+                $actual = Score::whereIn('student_id', $studentIds)->count();
+                $percentage = round(($actual / $expected) * 100, 1);
+            } else {
+                $actual = 0;
+                $percentage = 0;
+            }
+
+            // Cap at 100 just in case
+            if ($percentage > 100) {
+                $percentage = 100;
+            }
+
+            $isComplete = $percentage >= 100;
+            if ($isComplete) {
+                $totalCompletedClasses++;
+            }
+
+            $classStats[] = [
+                'id' => $class->id,
+                'name' => $class->nama_kelas,
+                'students_count' => $studentsCount,
+                'actual_scores' => $actual,
+                'expected_scores' => $expected,
+                'percentage' => $percentage,
+                'is_complete' => $isComplete
+            ];
+        }
+
+        $totalClasses = $classrooms->count();
+
+        return view('roleView.admin.dashboard', compact('classStats', 'totalCompletedClasses', 'totalClasses'));
     }
 
     public function manageDepartment()
@@ -49,7 +92,29 @@ class AdminController extends Controller
             $selectedSubject = Subject::find($subjectId);
         }
 
-        return view('roleView.admin.inputNilai', compact('classrooms', 'subjects', 'classroomId', 'subjectId', 'students', 'selectedSubject'));
+        // Fetch lock settings
+        $settings = Settings::all()->pluck('nilai_pengaturan', 'kunci_pengaturan');
+
+        return view('roleView.admin.inputNilai', compact('classrooms', 'subjects', 'classroomId', 'subjectId', 'students', 'selectedSubject', 'settings'));
+    }
+
+    public function saveSettings(Request $request)
+    {
+        $keys = ['buka_tugas_asts', 'tutup_tugas_asts', 'buka_asas', 'tutup_asas'];
+
+        foreach ($keys as $key) {
+            $val = $request->input($key);
+            if ($val) {
+                Settings::updateOrCreate(
+                    ['kunci_pengaturan' => $key],
+                    ['nilai_pengaturan' => \Carbon\Carbon::parse($val)]
+                );
+            } else {
+                Settings::where('kunci_pengaturan', $key)->delete();
+            }
+        }
+
+        return redirect()->back()->with('success', 'Pengaturan akses penilaian berhasil disimpan.');
     }
 
     public function saveScore(Request $request)
